@@ -14,7 +14,7 @@ const router = Router();
 // Configure multer for streaming uploads to disk
 const storage = multer.diskStorage({
   destination: (req: any, _file, cb) => {
-    const bucketId = req.params.id;
+    const bucketId = req.params.id as string;
     const destPath = getBucketStoragePath(bucketId);
     if (!fs.existsSync(destPath)) {
       fs.mkdirSync(destPath, { recursive: true });
@@ -36,7 +36,7 @@ const upload = multer({
 
 // POST /api/bucket/:id/upload
 router.post('/:id/upload', requireBucketAuth, upload.array('files', 50), (req: AuthenticatedRequest, res: Response) => {
-  const bucketId = req.params.id;
+  const bucketId = req.params.id as string;
 
   if (!req.files || !Array.isArray(req.files) || req.files.length === 0) {
     res.status(400).json({ success: false, error: 'No files uploaded' });
@@ -69,13 +69,14 @@ router.post('/:id/upload', requireBucketAuth, upload.array('files', 50), (req: A
 
 // GET /api/bucket/:id/files
 router.get('/:id/files', requireBucketAuth, (req: AuthenticatedRequest, res: Response) => {
-  const files = getFiles(req.params.id);
+  const files = getFiles(req.params.id as string);
   res.json({ success: true, data: files });
 });
 
 // GET /api/bucket/:id/files/:name - Stream file download
 router.get('/:id/files/:name', requireBucketAuth, (req: AuthenticatedRequest, res: Response) => {
-  const { id, name } = req.params;
+  const id = req.params.id as string;
+  const name = req.params.name as string;
   const filePath = getFilePath(id, name);
 
   if (!filePath) {
@@ -117,7 +118,8 @@ router.get('/:id/files/:name', requireBucketAuth, (req: AuthenticatedRequest, re
 
 // DELETE /api/bucket/:id/files/:name
 router.delete('/:id/files/:name', requireBucketAuth, (req: AuthenticatedRequest, res: Response) => {
-  const { id, name } = req.params;
+  const id = req.params.id as string;
+  const name = req.params.name as string;
   const deleted = deleteFile(id, name);
 
   if (!deleted) {

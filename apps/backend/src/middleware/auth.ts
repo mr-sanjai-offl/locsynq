@@ -20,7 +20,7 @@ export function requireBucketAuth(
   res: Response,
   next: NextFunction
 ): void {
-  const bucketId = req.params.id;
+  const bucketId = req.params.id as string;
   const bucket = getBucket(bucketId);
 
   if (!bucket) {
@@ -42,7 +42,7 @@ export function requireBucketAuth(
     return;
   }
 
-  const token = authHeader.split(' ')[1];
+  const token = authHeader.split(' ')[1] as string;
   try {
     const decoded = jwt.verify(token, config.jwtSecret) as {
       bucketId: string;
@@ -77,7 +77,7 @@ export function requireOwner(
     // For owner operations, check the owner token
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.split(' ')[1];
+      const token = authHeader.split(' ')[1] as string;
       try {
         const decoded = jwt.verify(token, config.jwtSecret) as {
           bucketId: string;

@@ -7,7 +7,7 @@ const router = Router();
 
 // POST /api/bucket/:id/auth
 router.post('/:id/auth', (req: Request, res: Response) => {
-  const { id } = req.params;
+  const id = req.params.id as string;
   const { pin } = req.body;
 
   const bucket = getBucket(id);
@@ -30,7 +30,7 @@ router.post('/:id/auth', (req: Request, res: Response) => {
     return;
   }
 
-  if (!checkPin(id, pin)) {
+  if (!checkPin(id, pin as string)) {
     res.status(403).json({ success: false, error: 'Invalid PIN' });
     return;
   }

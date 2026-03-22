@@ -70,7 +70,7 @@ router.get('/list', (_req: Request, res: Response) => {
 
 // GET /api/bucket/:id
 router.get('/:id', (req: Request, res: Response) => {
-  const bucket = getBucket(req.params.id);
+  const bucket = getBucket(req.params.id as string);
   if (!bucket) {
     res.status(404).json({ success: false, error: 'Bucket not found' });
     return;
@@ -81,7 +81,7 @@ router.get('/:id', (req: Request, res: Response) => {
 
 // DELETE /api/bucket/:id
 router.delete('/:id', (req: AuthenticatedRequest, res: Response) => {
-  const bucketId = req.params.id;
+  const bucketId = req.params.id as string;
   const bucket = getBucket(bucketId);
 
   if (!bucket) {
@@ -92,7 +92,7 @@ router.delete('/:id', (req: AuthenticatedRequest, res: Response) => {
   // Check owner token
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith('Bearer ')) {
-    const token = authHeader.split(' ')[1];
+    const token = authHeader.split(' ')[1] as string;
     try {
       const decoded = jwt.verify(token, config.jwtSecret) as {
         bucketId: string;

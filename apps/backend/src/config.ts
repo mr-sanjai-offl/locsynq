@@ -34,7 +34,8 @@ export const config = {
   jwtSecret: process.env.JWT_SECRET || `locsynq-secret-${Date.now()}`,
   deviceId: getDeviceId(),
   deviceName: os.hostname(),
-  localIP: getLocalIP(),
+  localIP: process.env.RENDER_EXTERNAL_URL ? new URL(process.env.RENDER_EXTERNAL_URL).hostname : getLocalIP(),
   isProduction: process.env.NODE_ENV === 'production',
   frontendPath: path.resolve(__dirname, '../../frontend/dist'),
+  publicUrl: process.env.RENDER_EXTERNAL_URL || `http://${getLocalIP()}:${parseInt(process.env.PORT || String(DEFAULT_PORT), 10)}`,
 };

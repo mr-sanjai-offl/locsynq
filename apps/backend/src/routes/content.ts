@@ -9,7 +9,7 @@ const router = Router();
 
 // POST /api/bucket/:id/text
 router.post('/:id/text', requireBucketAuth, (req: AuthenticatedRequest, res: Response) => {
-  const { id } = req.params;
+  const id = req.params.id as string;
   const { value, label } = req.body;
 
   if (!value || typeof value !== 'string' || value.trim().length === 0) {
@@ -22,7 +22,7 @@ router.post('/:id/text', requireBucketAuth, (req: AuthenticatedRequest, res: Res
     return;
   }
 
-  const content = addContent(id, 'text', value.trim(), label);
+  const content = addContent(id, 'text', value.trim(), label as string);
   broadcast(WSEventType.CONTENT_ADDED, id, content);
 
   res.status(201).json({ success: true, data: content });
@@ -30,7 +30,7 @@ router.post('/:id/text', requireBucketAuth, (req: AuthenticatedRequest, res: Res
 
 // POST /api/bucket/:id/link
 router.post('/:id/link', requireBucketAuth, (req: AuthenticatedRequest, res: Response) => {
-  const { id } = req.params;
+  const id = req.params.id as string;
   const { url, label } = req.body;
 
   if (!url || typeof url !== 'string') {
@@ -43,7 +43,7 @@ router.post('/:id/link', requireBucketAuth, (req: AuthenticatedRequest, res: Res
     return;
   }
 
-  const content = addContent(id, 'link', url, label);
+  const content = addContent(id, 'link', url as string, label as string);
   broadcast(WSEventType.CONTENT_ADDED, id, content);
 
   res.status(201).json({ success: true, data: content });
@@ -51,13 +51,14 @@ router.post('/:id/link', requireBucketAuth, (req: AuthenticatedRequest, res: Res
 
 // GET /api/bucket/:id/content
 router.get('/:id/content', requireBucketAuth, (req: AuthenticatedRequest, res: Response) => {
-  const contents = getContents(req.params.id);
+  const contents = getContents(req.params.id as string);
   res.json({ success: true, data: contents });
 });
 
 // DELETE /api/bucket/:id/content/:contentId
 router.delete('/:id/content/:contentId', requireBucketAuth, (req: AuthenticatedRequest, res: Response) => {
-  const { id, contentId } = req.params;
+  const id = req.params.id as string;
+  const contentId = req.params.contentId as string;
   const deleted = deleteContent(id, contentId);
 
   if (!deleted) {

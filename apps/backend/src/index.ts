@@ -70,7 +70,7 @@ server.listen(config.port, config.host, () => {
   console.log('║                  🪣 LOCSYNQ                      ║');
   console.log('║          Local Bucket Sharing System              ║');
   console.log('╠══════════════════════════════════════════════════╣');
-  console.log(`║  Server:    http://${config.localIP}:${config.port}`);
+  console.log(`║  Server:    ${config.publicUrl}`);
   console.log(`║  Device:    ${config.deviceName}`);
   console.log(`║  Device ID: ${config.deviceId.substring(0, 20)}...`);
   console.log(`║  Storage:   ${config.storagePath}`);
@@ -81,8 +81,12 @@ server.listen(config.port, config.host, () => {
   console.log('╚══════════════════════════════════════════════════╝');
   console.log('');
 
-  // Start mDNS discovery after server is listening
-  startDiscovery();
+  // Start mDNS discovery only if not in cloud environment
+  if (!process.env.RENDER) {
+    startDiscovery();
+  } else {
+    console.log('[Info] Running in cloud mode, mDNS discovery disabled.');
+  }
 });
 
 // ─── Graceful Shutdown ───
