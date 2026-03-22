@@ -1,0 +1,9 @@
+export const DEFAULT_PORT = 3377;
+export const MDNS_SERVICE_TYPE = 'locsynq';
+export const MDNS_SERVICE_NAME = '_locsynq._tcp';
+export const MAX_FILE_SIZE = 5 * 1024 * 1024 * 1024; // 5GB
+export const CHUNK_SIZE = 1024 * 1024; // 1MB chunks
+export const JWT_EXPIRY = '24h';
+export const WS_PING_INTERVAL = 30000; // 30 seconds
+export const DEFAULT_BUCKET_EXPIRY_MINUTES = 60;
+export const STORAGE_DIR = 'bucket-storage';

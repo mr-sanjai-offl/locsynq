@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  locsynq:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: locsynq
+    network_mode: host
+    restart: unless-stopped
+    volumes:
+      - locsynq-storage:/app/bucket-storage
+    environment:
+      - NODE_ENV=production
+      - PORT=3377
+      - STORAGE_PATH=/app/bucket-storage
+
+volumes:
+  locsynq-storage:
