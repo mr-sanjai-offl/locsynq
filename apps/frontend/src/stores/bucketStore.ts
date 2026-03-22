@@ -50,6 +50,7 @@ interface BucketState {
   setError: (error: string | null) => void;
   setUploadProgress: (progress: number) => void;
   setUploading: (uploading: boolean) => void;
+  fetchBuckets: () => Promise<void>;
 }
 
 export const useBucketStore = create<BucketState>((set) => ({
@@ -79,4 +80,9 @@ export const useBucketStore = create<BucketState>((set) => ({
   setError: (error) => set({ error }),
   setUploadProgress: (uploadProgress) => set({ uploadProgress }),
   setUploading: (isUploading) => set({ isUploading }),
+  fetchBuckets: async () => {
+    const { bucketApi } = await import('../services/api');
+    const buckets = await bucketApi.list();
+    set({ buckets });
+  },
 }));

@@ -35,7 +35,7 @@ export function BucketViewerPage() {
   const [showAddLink, setShowAddLink] = useState(false);
 
   const bucketId = id || '';
-  const isOwner = !!sessionStorage.getItem(`ownerToken_${bucketId}`);
+  const isOwner = !!localStorage.getItem(`owner_token_${bucketId}`);
 
   const loadBucket = useCallback(async () => {
     setLoading(true);

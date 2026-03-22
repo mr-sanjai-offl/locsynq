@@ -1,50 +1,61 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Wifi, WifiOff, Bucket, Plus } from 'lucide-react';
+import { Wifi, WifiOff, Database, Plus } from 'lucide-react';
 import { usePeerStore } from '../stores/peerStore';
 
 export function Header() {
   const location = useLocation();
-  const { isConnected, self } = usePeerStore();
+  const { isConnected } = usePeerStore();
 
   return (
-    <header className="sticky top-0 z-50 glass border-b border-white/5">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+    <header className="h-20 border-b border-white/5 bg-background/80 backdrop-blur-md sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto h-full px-4 sm:px-6 flex items-center justify-between">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2.5 group">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary-500 to-accent-cyan flex items-center justify-center shadow-lg shadow-primary-600/25 group-hover:shadow-primary-500/40 transition-shadow">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M2 12a5 5 0 0 0 5 5 8 8 0 0 1 5 2 8 8 0 0 1 5-2 5 5 0 0 0 5-5V7h-5a8 8 0 0 0-5 2 8 8 0 0 0-5-2H2Z" />
-            </svg>
+        <Link to="/" className="flex items-center gap-3 group">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-600 to-accent-blue flex items-center justify-center shadow-lg shadow-primary-600/20 group-hover:scale-105 transition-transform duration-200">
+            <Database className="w-6 h-6 text-white" />
           </div>
-          <span className="text-lg font-bold tracking-tight">
-            <span className="text-gradient">Loc</span>
-            <span className="text-white">synq</span>
+          <span className="text-xl font-black tracking-tight text-white italic group-hover:text-primary-400 transition-colors">
+            Loc<span className="text-primary-500">synq</span>
           </span>
         </Link>
 
-        {/* Nav */}
-        <div className="flex items-center gap-3">
-          {location.pathname !== '/create' && (
-            <Link to="/create" className="btn-primary text-sm">
-              <Plus size={16} />
-              <span className="hidden sm:inline">Create Bucket</span>
-            </Link>
-          )}
+        {/* Navigation */}
+        <nav className="hidden md:flex items-center gap-8">
+          <Link 
+            to="/" 
+            className={`text-sm font-medium transition-colors ${location.pathname === '/' ? 'text-primary-400' : 'text-surface-400 hover:text-white'}`}
+          >
+            Discovery
+          </Link>
+          <Link 
+            to="/create" 
+            className={`text-sm font-medium transition-colors ${location.pathname === '/create' ? 'text-primary-400' : 'text-surface-400 hover:text-white'}`}
+          >
+            Create Bucket
+          </Link>
+        </nav>
 
-          {/* Connection Status */}
-          <div className="flex items-center gap-2 glass rounded-xl px-3 py-2 text-xs">
+        {/* Status & Actions */}
+        <div className="flex items-center gap-3">
+          <div className={`px-3 py-1.5 rounded-full flex items-center gap-2 border ${isConnected ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-surface-500/10 border-surface-500/20'}`}>
+            <div className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-surface-500'}`} />
+            <span className={`text-[10px] font-bold uppercase tracking-wider ${isConnected ? 'text-emerald-400' : 'text-surface-500'}`}>
+              {isConnected ? 'Connected' : 'Searching'}
+            </span>
             {isConnected ? (
-              <>
-                <Wifi size={14} className="text-emerald-400" />
-                <span className="text-emerald-400 hidden sm:inline">Connected</span>
-              </>
+              <Wifi size={14} className="text-emerald-500" />
             ) : (
-              <>
-                <WifiOff size={14} className="text-surface-500" />
-                <span className="text-surface-500 hidden sm:inline">Offline</span>
-              </>
+              <WifiOff size={14} className="text-surface-500" />
             )}
           </div>
+
+          <Link to="/create" className="btn-primary p-2 sm:px-4 sm:py-2 rounded-xl">
+            <Plus size={20} className="sm:hidden" />
+            <span className="hidden sm:inline-flex items-center gap-2">
+              <Plus size={18} />
+              Create Bucket
+            </span>
+          </Link>
         </div>
       </div>
     </header>

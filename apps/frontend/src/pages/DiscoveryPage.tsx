@@ -1,7 +1,18 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Radio, MonitorSmartphone, Plus, RefreshCw, Server, QrCode, ArrowRight, Lock, Globe, Clock } from 'lucide-react';
-import { bucketApi, peersApi, healthApi } from '../services/api';
+import { 
+  Database, 
+  Plus, 
+  Shield, 
+  Clock, 
+  Globe, 
+  QrCode, 
+  RefreshCw, 
+  Users, 
+  Monitor,
+  ArrowRight
+} from 'lucide-react';
+import { healthApi } from '../services/api';
 import { wsService } from '../services/websocket';
 import { useBucketStore } from '../stores/bucketStore';
 import { usePeerStore } from '../stores/peerStore';
@@ -9,194 +20,198 @@ import { QRCodeDisplay } from '../components/QRCodeDisplay';
 
 export function DiscoveryPage() {
   const navigate = useNavigate();
-  const { buckets, setBuckets } = useBucketStore();
-  const { self, setSelf, setPeers, setConnected } = usePeerStore();
+  const self = usePeerStore(s => s.self);
+  const peers = usePeerStore(s => s.peers);
+  const fetchPeers = usePeerStore(s => s.fetchPeers);
+  
+  const buckets = useBucketStore(s => s.buckets);
+  const fetchBuckets = useBucketStore(s => s.fetchBuckets);
+  
   const [showQR, setShowQR] = useState(false);
-  const [isScanning, setIsScanning] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [status, setStatus] = useState<'online' | 'offline'>('online');
 
   useEffect(() => {
-    // Connect WebSocket
-    wsService.connect();
-
-    const unsubConnect = wsService.on('_connected', () => setConnected(true));
-    const unsubDisconnect = wsService.on('_disconnected', () => setConnected(false));
-
-    // Listen for bucket events
-    const unsubCreated = wsService.on('BUCKET_CREATED', (msg) => {
-      if (msg.data) {
-        useBucketStore.getState().addBucket(msg.data);
-      }
-    });
-    const unsubDeleted = wsService.on('BUCKET_DELETED', (msg) => {
-      if (msg.bucketId) {
-        useBucketStore.getState().removeBucket(msg.bucketId);
-      }
-    });
-
-    // Initial load
     loadData();
 
-    // Stop scanning animation after 3s
-    const scanTimer = setTimeout(() => setIsScanning(false), 3000);
+    const unsubBucket = wsService.on('BUCKET_CREATED', fetchBuckets);
+    const unsubDeleted = wsService.on('BUCKET_DELETED', fetchBuckets);
+    const unsubHealth = setInterval(checkHealth, 5000);
 
     return () => {
-      unsubConnect();
-      unsubDisconnect();
-      unsubCreated();
+      unsubBucket();
       unsubDeleted();
-      clearTimeout(scanTimer);
+      clearInterval(unsubHealth);
     };
   }, []);
 
   const loadData = async () => {
+    setIsRefreshing(true);
     try {
-      const [bucketsData, peersData] = await Promise.all([
-        bucketApi.list(),
-        peersApi.list(),
-      ]);
-      setBuckets(bucketsData);
-      setSelf(peersData.self);
-      setPeers(peersData.peers);
+      await Promise.all([fetchPeers(), fetchBuckets()]);
+      setStatus('online');
     } catch (err) {
-      console.error('Failed to load data:', err);
+      console.error('Failed to load discovery data:', err);
+      setStatus('offline');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  const checkHealth = async () => {
+    try {
+      await healthApi.check();
+      setStatus('online');
+    } catch {
+      setStatus('offline');
     }
   };
 
   const getModeIcon = (mode: string) => {
     switch (mode) {
-      case 'pin-protected': return <Lock size={14} />;
+      case 'pin-protected': return <Shield size={14} />;
       case 'temporary': return <Clock size={14} />;
       default: return <Globe size={14} />;
     }
   };
 
-  const getModeBadge = (mode: string) => {
-    switch (mode) {
-      case 'pin-protected': return 'badge-protected';
-      case 'temporary': return 'badge-temporary';
-      default: return 'badge-public';
-    }
-  };
-
-  const hostUrl = self ? `http://${self.ip}:${self.port}` : '';
-
   return (
-    <div className="space-y-8">
-      {/* Hero Section */}
-      <div className="text-center space-y-4 py-4">
-        {/* Radar Animation */}
-        <div className="relative w-32 h-32 mx-auto mb-6">
-          <div className="absolute inset-0 rounded-full border border-primary-500/20" />
-          <div className="absolute inset-3 rounded-full border border-primary-500/15" />
-          <div className="absolute inset-6 rounded-full border border-primary-500/10" />
-          <div className={`absolute inset-0 rounded-full overflow-hidden ${isScanning ? '' : 'opacity-0'} transition-opacity duration-1000`}>
-            <div className="absolute top-1/2 left-1/2 w-1/2 h-1/2 origin-top-left bg-gradient-to-r from-primary-500/30 to-transparent animate-radar-sweep" />
-          </div>
+    <div className="max-w-6xl mx-auto px-4 py-12">
+      {/* Radar Section */}
+      <div className="relative flex flex-col items-center justify-center mb-16">
+        <div className="relative w-72 h-72">
+          {/* Radar Waves */}
+          <div className="absolute inset-0 border-2 border-primary-500/20 rounded-full animate-ping-slow" />
+          <div className="absolute inset-4 border border-primary-500/10 rounded-full animate-pulse-subtle" />
+          <div className="absolute inset-12 border border-primary-500/5 rounded-full" />
+          
+          {/* Radar Sweep */}
+          <div className="absolute inset-0 bg-gradient-to-tr from-primary-500/20 to-transparent rounded-full animate-radar opacity-40" />
+          
+          {/* Center Icon */}
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary-500 to-accent-cyan flex items-center justify-center shadow-lg shadow-primary-500/30">
-              <Radio size={22} className="text-white" />
+              <Monitor size={22} className="text-white" />
             </div>
           </div>
         </div>
 
-        <h1 className="text-3xl sm:text-4xl font-bold">
-          <span className="text-gradient">Local Bucket</span>{' '}
-          <span className="text-white">Sharing</span>
-        </h1>
-        <p className="text-surface-400 max-w-lg mx-auto">
-          Share files, text, and links instantly across your local network. No internet needed.
-        </p>
+        <div className="text-center mt-8 space-y-2">
+          <h2 className="text-4xl font-extrabold text-white tracking-tight">
+            Local <span className="text-primary-400">Bucket</span> Sharing
+          </h2>
+          <p className="text-surface-400 max-w-sm mx-auto">
+            Share files, text, and links instantly across your local network. No internet needed.
+          </p>
+        </div>
       </div>
 
       {/* Host Info Card */}
-      {self && (
-        <div className="card glow-primary">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary-500/10 flex items-center justify-center">
-                <Server size={18} className="text-primary-400" />
-              </div>
+      <div className="card mb-12 border-primary-500/20 glow-primary p-6">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary-500/10 flex items-center justify-center">
+              <Monitor size={18} className="text-primary-400" />
+            </div>
+            {self ? (
               <div>
                 <p className="text-sm font-semibold text-white">{self.name}</p>
-                <p className="text-xs text-surface-400">{self.ip}:{self.port}</p>
+                <p className="text-xs text-surface-500">{self.ip}:{self.port}</p>
               </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowQR(!showQR)}
-                className="btn-ghost"
-                title="Show QR Code"
-              >
-                <QrCode size={18} />
-              </button>
-              <button onClick={loadData} className="btn-ghost" title="Refresh">
-                <RefreshCw size={18} />
-              </button>
-            </div>
+            ) : (
+              <div>
+                <p className="text-sm font-semibold text-surface-400 italic">Finding local host...</p>
+              </div>
+            )}
           </div>
-
-          {/* QR Code */}
-          {showQR && hostUrl && (
-            <div className="mt-4 pt-4 border-t border-white/10 flex justify-center animate-slide-down">
-              <QRCodeDisplay url={hostUrl} />
-            </div>
-          )}
+          
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => setShowQR(!showQR)}
+              className="btn-ghost"
+              disabled={!self}
+              title="Show QR Code"
+            >
+              <QrCode size={18} />
+            </button>
+            <button onClick={loadData} className="btn-ghost" title="Refresh">
+              <RefreshCw size={18} className={isRefreshing ? 'animate-spin' : ''} />
+            </button>
+            <Link to="/create" className="btn-primary py-2 text-sm">
+              <Plus size={16} />
+              <span>Create Bucket</span>
+            </Link>
+          </div>
         </div>
-      )}
+
+        {showQR && self && (
+          <div className="mt-6 pt-6 border-t border-white/5 flex flex-col items-center animate-fade-in">
+            <QRCodeDisplay url={`http://${self.ip}:${self.port}`} />
+          </div>
+        )}
+      </div>
 
       {/* Buckets Grid */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-white">Active Buckets</h2>
-          <Link to="/create" className="btn-primary text-sm">
-            <Plus size={16} />
-            New Bucket
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xl font-bold text-white flex items-center gap-2">
+            Active Buckets
+            <span className="px-2 py-0.5 rounded-full bg-white/5 text-xs text-surface-400 font-normal">
+              {buckets.length}
+            </span>
+          </h3>
+          <Link to="/create" className="text-primary-400 hover:text-primary-300 text-sm font-medium flex items-center gap-1">
+            <Plus size={14} /> New Bucket
           </Link>
         </div>
 
         {buckets.length === 0 ? (
           <div className="card text-center py-16">
             <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mx-auto mb-4">
-              <MonitorSmartphone size={28} className="text-surface-500" />
+              <Monitor size={28} className="text-surface-500" />
             </div>
             <p className="text-surface-400 mb-2">No buckets yet</p>
             <p className="text-surface-600 text-sm mb-6">Create a bucket to start sharing files on your network</p>
-            <Link to="/create" className="btn-primary">
-              <Plus size={16} />
-              Create your first bucket
+            <Link to="/create" className="btn-secondary">
+              <Plus size={18} />
+              <span>Create your first bucket</span>
             </Link>
           </div>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {buckets.map((bucket) => (
-              <button
-                key={bucket.id}
-                onClick={() => navigate(`/bucket/${bucket.id}`)}
-                className="card text-left group hover:bg-white/[0.07] transition-all cursor-pointer"
-                id={`bucket-${bucket.id}`}
+              <Link 
+                key={bucket.id} 
+                to={`/bucket/${bucket.id}`}
+                className="card group hover:border-primary-500/40 transition-all duration-300 p-5"
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-white truncate group-hover:text-primary-300 transition-colors">
-                      {bucket.name}
-                    </h3>
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className={getModeBadge(bucket.mode)}>
-                        {getModeIcon(bucket.mode)}
-                        {bucket.mode === 'pin-protected' ? 'Protected' : bucket.mode === 'temporary' ? 'Temporary' : 'Public'}
-                      </span>
+                <div className="flex items-start justify-between mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-primary-500/10 transition-colors">
+                    <Database size={20} className="text-surface-400 group-hover:text-primary-400" />
+                  </div>
+                  <div className="flex gap-2">
+                    <div className={
+                      bucket.mode === 'public' ? 'badge-public' : 
+                      bucket.mode === 'pin-protected' ? 'badge-protected' : 'badge-temporary'
+                    }>
+                      {getModeIcon(bucket.mode)}
+                      {bucket.mode.replace('-', ' ')}
                     </div>
                   </div>
-                  <ArrowRight size={18} className="text-surface-600 group-hover:text-primary-400 transition-colors flex-shrink-0 mt-1" />
                 </div>
-
-                {bucket.expiresAt && (
-                  <p className="text-xs text-surface-500 mt-3">
-                    Expires: {new Date(bucket.expiresAt).toLocaleTimeString()}
-                  </p>
-                )}
-              </button>
+                
+                <h4 className="text-lg font-bold text-white mb-1 group-hover:text-primary-400 transition-colors">
+                  {bucket.name}
+                </h4>
+                
+                <div className="flex items-center justify-between mt-6 text-surface-500 text-xs">
+                  <div className="flex items-center gap-2">
+                    <Users size={12} />
+                    <span>Active LAN</span>
+                  </div>
+                  <ArrowRight size={14} className="transform group-hover:translate-x-1 transition-transform" />
+                </div>
+              </Link>
             ))}
           </div>
         )}

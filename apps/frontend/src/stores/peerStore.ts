@@ -15,6 +15,7 @@ interface PeerState {
   setSelf: (device: Device) => void;
   setPeers: (peers: Device[]) => void;
   setConnected: (connected: boolean) => void;
+  fetchPeers: () => Promise<void>;
 }
 
 export const usePeerStore = create<PeerState>((set) => ({
@@ -25,4 +26,9 @@ export const usePeerStore = create<PeerState>((set) => ({
   setSelf: (self) => set({ self }),
   setPeers: (peers) => set({ peers }),
   setConnected: (isConnected) => set({ isConnected }),
+  fetchPeers: async () => {
+    const { peersApi } = await import('../services/api');
+    const data = await peersApi.list();
+    set({ self: data.self, peers: data.peers, isConnected: true });
+  },
 }));

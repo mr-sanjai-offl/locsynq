@@ -1,150 +1,162 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Bucket, Globe, Lock, Clock, Sparkles } from 'lucide-react';
+import { Database, ArrowLeft, Shield, Globe, Clock, Info, ChevronRight } from 'lucide-react';
 import { bucketApi } from '../services/api';
 import { useBucketStore } from '../stores/bucketStore';
 
-type BucketMode = 'public' | 'pin-protected' | 'temporary';
-
 export function CreateBucketPage() {
   const navigate = useNavigate();
-  const { addBucket } = useBucketStore();
+  const loadBuckets = useBucketStore(s => s.fetchBuckets);
   const [name, setName] = useState('');
-  const [mode, setMode] = useState<BucketMode>('public');
+  const [mode, setMode] = useState<'public' | 'pin-protected' | 'temporary'>('public');
   const [pin, setPin] = useState('');
   const [expiresInMinutes, setExpiresInMinutes] = useState(60);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
 
-    setLoading(true);
-    setError('');
+    setIsLoading(true);
+    setError(null);
 
     try {
       const result = await bucketApi.create({
-        name: name.trim(),
+        name,
         mode,
-        ...(mode === 'pin-protected' ? { pin } : {}),
-        ...(mode === 'temporary' ? { expiresInMinutes } : {}),
+        pin: mode === 'pin-protected' ? pin : undefined,
+        expiresInMinutes: mode === 'temporary' ? expiresInMinutes : undefined
       });
 
-      // Store owner token
-      sessionStorage.setItem(`ownerToken_${result.bucket.id}`, result.ownerToken);
-      sessionStorage.setItem('bucketToken', result.ownerToken);
+      if (result.ownerToken) {
+        localStorage.setItem(`owner_token_${result.bucket.id}`, result.ownerToken);
+      }
 
-      addBucket(result.bucket);
+      await loadBuckets();
       navigate(`/bucket/${result.bucket.id}`);
     } catch (err: any) {
       setError(err.message || 'Failed to create bucket');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const modeOptions: { value: BucketMode; icon: React.ReactNode; label: string; desc: string }[] = [
-    { value: 'public', icon: <Globe size={20} />, label: 'Public', desc: 'Anyone on the network can access' },
-    { value: 'pin-protected', icon: <Lock size={20} />, label: 'PIN Protected', desc: 'Requires a PIN to access' },
-    { value: 'temporary', icon: <Clock size={20} />, label: 'Temporary', desc: 'Auto-expires after a set time' },
-  ];
-
   return (
-    <div className="max-w-lg mx-auto space-y-6">
-      {/* Header */}
-      <div>
-        <button onClick={() => navigate(-1)} className="btn-ghost mb-4">
-          <ArrowLeft size={18} />
+    <div className="max-w-2xl mx-auto px-4 py-12">
+      <div className="mb-8">
+        <button 
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 text-surface-400 hover:text-white transition-colors mb-4 group"
+        >
+          <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
           <span>Back</span>
         </button>
         <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-          <Sparkles size={24} className="text-primary-400" />
+          <Database size={24} className="text-primary-400" />
           Create New Bucket
         </h1>
         <p className="text-surface-400 mt-1">Set up a bucket to share files, text, and links</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Bucket Name */}
-        <div className="space-y-2">
-          <label htmlFor="bucket-name" className="text-sm font-medium text-surface-300">Bucket Name</label>
+      <form onSubmit={handleSubmit} className="space-y-8">
+        {error && (
+          <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-400 text-sm flex items-center gap-3 animate-shake">
+            <Info size={18} />
+            {error}
+          </div>
+        )}
+
+        <div className="space-y-4">
+          <label htmlFor="name" className="block text-sm font-medium text-surface-300 ml-1">
+            Bucket Name
+          </label>
           <input
-            id="bucket-name"
+            id="name"
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g., Lab Resources, Meeting Files..."
+            placeholder="e.g., Lab Resources, Team Shares"
             className="input-field"
-            maxLength={100}
             required
             autoFocus
           />
         </div>
 
-        {/* Mode Selection */}
-        <div className="space-y-3">
-          <label className="text-sm font-medium text-surface-300">Access Mode</label>
-          <div className="grid gap-3">
-            {modeOptions.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => setMode(opt.value)}
-                className={`flex items-center gap-4 p-4 rounded-xl border transition-all text-left
-                  ${mode === opt.value
-                    ? 'border-primary-500/50 bg-primary-500/10 shadow-lg shadow-primary-500/5'
-                    : 'border-white/10 bg-white/5 hover:bg-white/[0.07] hover:border-white/15'
-                  }
-                `}
-                id={`mode-${opt.value}`}
-              >
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                  mode === opt.value ? 'bg-primary-500/20 text-primary-400' : 'bg-white/5 text-surface-400'
-                }`}>
-                  {opt.icon}
-                </div>
-                <div>
-                  <p className={`font-medium ${mode === opt.value ? 'text-white' : 'text-surface-300'}`}>
-                    {opt.label}
-                  </p>
-                  <p className="text-xs text-surface-500 mt-0.5">{opt.desc}</p>
-                </div>
-              </button>
-            ))}
+        <div className="space-y-4">
+          <label className="block text-sm font-medium text-surface-300 ml-1">
+            Access Mode
+          </label>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <button
+              type="button"
+              onClick={() => setMode('public')}
+              className={`p-4 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${
+                mode === 'public' ? 'bg-primary-500/10 border-primary-500 text-white' : 'bg-white/5 border-white/5 text-surface-500 hover:bg-white/10'
+              }`}
+            >
+              <Globe size={20} />
+              <span className="text-sm font-medium">Public</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('pin-protected')}
+              className={`p-4 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${
+                mode === 'pin-protected' ? 'bg-primary-500/10 border-primary-500 text-white' : 'bg-white/5 border-white/5 text-surface-500 hover:bg-white/10'
+              }`}
+            >
+              <Shield size={20} />
+              <span className="text-sm font-medium">PIN Protected</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('temporary')}
+              className={`p-4 rounded-xl border flex flex-col items-center justify-center gap-2 transition-all ${
+                mode === 'temporary' ? 'bg-primary-500/10 border-primary-500 text-white' : 'bg-white/5 border-white/5 text-surface-500 hover:bg-white/10'
+              }`}
+            >
+              <Clock size={20} />
+              <span className="text-sm font-medium">Temporary</span>
+            </button>
           </div>
         </div>
 
-        {/* PIN Input */}
         {mode === 'pin-protected' && (
-          <div className="space-y-2 animate-slide-up">
-            <label htmlFor="bucket-pin" className="text-sm font-medium text-surface-300">Set PIN</label>
+          <div className="space-y-4 animate-fade-in">
+            <label htmlFor="pin" className="block text-sm font-medium text-surface-300 ml-1">
+              Access PIN (4-digit)
+            </label>
             <input
-              id="bucket-pin"
+              id="pin"
               type="password"
+              inputMode="numeric"
+              maxLength={4}
+              pattern="[0-9]{4}"
               value={pin}
               onChange={(e) => setPin(e.target.value)}
-              placeholder="4-20 character PIN"
-              className="input-field"
-              minLength={4}
-              maxLength={20}
+              placeholder="0000"
+              className="input-field text-center text-2xl tracking-[1em]"
               required
             />
           </div>
         )}
 
-        {/* Expiry Setting */}
         {mode === 'temporary' && (
-          <div className="space-y-2 animate-slide-up">
-            <label htmlFor="bucket-expiry" className="text-sm font-medium text-surface-300">
-              Expire After: <span className="text-primary-400">{expiresInMinutes} minutes</span>
-            </label>
+          <div className="space-y-4 animate-fade-in">
+            <div className="flex justify-between items-center ml-1">
+              <label htmlFor="expiry" className="block text-sm font-medium text-surface-300">
+                Expires In
+              </label>
+              <span className="text-primary-400 font-bold">
+                {expiresInMinutes >= 60 ? `${Math.floor(expiresInMinutes/60)}h ${expiresInMinutes%60}m` : `${expiresInMinutes}m`}
+              </span>
+            </div>
             <input
-              id="bucket-expiry"
+              id="expiry"
               type="range"
-              min={5}
-              max={480}
-              step={5}
+              min="5"
+              max="480"
+              step="5"
               value={expiresInMinutes}
               onChange={(e) => setExpiresInMinutes(Number(e.target.value))}
               className="w-full accent-primary-500"
@@ -156,28 +168,18 @@ export function CreateBucketPage() {
           </div>
         )}
 
-        {/* Error */}
-        {error && (
-          <p className="text-sm text-rose-400 animate-fade-in">{error}</p>
-        )}
-
-        {/* Submit */}
         <button
           type="submit"
-          disabled={loading || !name.trim() || (mode === 'pin-protected' && pin.length < 4)}
-          className="btn-primary w-full py-3 text-base"
-          id="create-bucket-btn"
+          disabled={isLoading || !name.trim() || (mode === 'pin-protected' && pin.length !== 4)}
+          className="btn-primary w-full py-4 rounded-xl mt-4"
         >
-          {loading ? (
-            <span className="flex items-center gap-2">
-              <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-              Creating...
-            </span>
+          {isLoading ? (
+            <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
           ) : (
-            'Create Bucket'
+            <>
+              <span>Create Bucket</span>
+              <ChevronRight size={20} />
+            </>
           )}
         </button>
       </form>

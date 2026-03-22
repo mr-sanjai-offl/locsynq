@@ -40,7 +40,7 @@ export const bucketApi = {
   get: (id: string) => request<any>(`/bucket/${id}`),
 
   delete: (id: string) => {
-    const ownerToken = sessionStorage.getItem(`ownerToken_${id}`);
+    const ownerToken = localStorage.getItem(`owner_token_${id}`);
     return request<any>(`/bucket/${id}`, {
       method: 'DELETE',
       headers: ownerToken ? { Authorization: `Bearer ${ownerToken}` } : {},
