@@ -141,4 +141,5 @@ vite.config.ts.timestamp-*
 # Locsynq
 bucket-storage/
 apps/frontend/dist/
+apps/backend/dist/
 packages/shared/dist/
